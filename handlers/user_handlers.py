@@ -7,9 +7,10 @@ from aiogram.types import Message, CallbackQuery
 from keyboards.game_keyboard import create_game_keyboard
 from keyboards.keyboard import start_kb
 from lexicon.lexicon import LEXICON
-from services.services import game_filed, computer_move, make_move
+from services.services import Game
 
 router = Router()
+game = Game()  # инициализируем игру
 
 
 @router.message(CommandStart())
