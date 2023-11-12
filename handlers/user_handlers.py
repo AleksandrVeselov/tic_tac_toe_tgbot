@@ -1,7 +1,9 @@
 import re
 
 from aiogram import Router, F
-from aiogram.filters import CommandStart
+from aiogram.filters import CommandStart, StateFilter
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import StatesGroup, State, default_state
 from aiogram.types import Message, CallbackQuery
 
 from keyboards.game_keyboard import create_game_keyboard
@@ -13,9 +15,14 @@ router = Router()
 game = Game()  # инициализируем игру
 
 
-@router.message(CommandStart())
+# Состояния, в которых может находиться бот
+class FSMGame(StatesGroup):
+    play_state = State()  # состояние "в игре"
+
+
+@router.message(CommandStart(), StateFilter(default_state))
 async def process_start_command(message: Message):
-    """Хэндлер срабатывает на команду /start и присылает в чат стартовую клавиатуру.
+    """Хэндлер срабатывает на команду /start в состянии вне игры и присылает в чат стартовую клавиатуру.
     Команды, которые может ввести пользователь на данном этапе: Правила, Не сейчас, Сыграем, любая другая команда"""
     await message.answer(LEXICON['/start'], reply_markup=start_kb)
 
@@ -28,21 +35,26 @@ async def process_help_command(message: Message):
 
 
 @router.message(F.text == 'Не сейчас')
-async def process_no_command(message: Message):
+async def process_no_command(message: Message, state: FSMContext):
     """Хэндлер срабатывает на команду "Не сейчас", присылает в чат соответствующее сообщение и стартовую клавиатуру
     Команды, которые может ввести пользователь на данном этапе: Правила, Не сейчас, Сыграем, любая другая команда"""
     await message.answer(LEXICON['no'])
+    await state.set_state(FSMGame.exit_state)  # переводим бота в состояние вне игры
 
 
-@router.message(F.text == 'Сыграем')
-async def process_play_command(message: Message):
-    """Хэндлер срабатывает на команду "Сыграем", формирует игровое поле и отправляет его в чат"""
+@router.message(F.text == 'Сыграем', StateFilter(default_state))
+async def process_play_command(message: Message, state: FSMContext):
+    """Хэндлер срабатывает на команду "Сыграем" в состоянии по умолчанию,
+    формирует игровое поле и отправляет его в чат"""
+
     game_keyboard = create_game_keyboard(game.game_field)
     await message.answer(LEXICON['start_game'], reply_markup=game_keyboard)
 
+    await state.set_state(FSMGame.play_state)  # переводим бота в состояние "в игре"
 
-@router.callback_query(lambda x: re.fullmatch('[012],[012]', x.data))
-async def process_move_button_press(callback: CallbackQuery):
+
+@router.callback_query(lambda x: re.fullmatch('[012],[012]', x.data), StateFilter(FSMGame.play_state))
+async def process_move_button_press(callback: CallbackQuery, state: FSMContext):
 
     # Если очередь игрока
     if game.queue_flag == 1:
@@ -58,11 +70,13 @@ async def process_move_button_press(callback: CallbackQuery):
             if game.is_winner(game.human_letter):
                 await callback.message.edit_text(text='Ты победил, поздравляю!!!',
                                                  reply_markup=game_keyboard)  # Отправляем ответ в чат
+                await state.set_state(default_state)
 
             # проверяем на ничью
             elif game.is_board_full():
                 await callback.message.edit_text(text='Победила дружба!!!',
                                                  reply_markup=game_keyboard)  # Отправляем ответ в чат
+                await state.set_state(default_state)
 
             # в остальных случаях
             else:
@@ -81,8 +95,8 @@ async def process_move_button_press(callback: CallbackQuery):
     await callback.answer()
 
 
-@router.callback_query(F.data == 'computer_move')
-async def process_computer_move(callback: CallbackQuery):
+@router.callback_query(F.data == 'computer_move', StateFilter(FSMGame.play_state))
+async def process_computer_move(callback: CallbackQuery, state: FSMContext):
     move = game.computer_move()
     game.make_move(game.computer_letter, move)
     game.queue_flag = game.human_letter
@@ -92,15 +106,31 @@ async def process_computer_move(callback: CallbackQuery):
     if game.is_winner(game.computer_letter):
         await callback.message.edit_text(text='Я победил, ура!!!',
                                          reply_markup=game_keyboard)  # Отправляем ответ в чат
+        await state.set_state(default_state)
 
     # проверяем на ничью
     elif game.is_board_full():
         await callback.message.edit_text(text='Победила дружба!!!',
                                          reply_markup=game_keyboard)  # Отправляем ответ в чат
+        await state.set_state(default_state)
 
     # в остальных случаях
     else:
         await callback.message.edit_text(text='Я сделал ход, теперь ты',
                                          reply_markup=game_keyboard)
+
+    await callback.answer()
+
+
+@router.callback_query(lambda x: re.fullmatch('[012],[012]', x.data), StateFilter(default_state))
+async def process_push_button_exit_state(callback: CallbackQuery):
+    await callback.message.answer(LEXICON['/start'], reply_markup=start_kb)
+
+    await callback.answer()
+
+
+@router.callback_query(F.data == 'computer_move', StateFilter(default_state))
+async def process_push_button_exit_state(callback: CallbackQuery):
+    await callback.message.answer(LEXICON['/start'], reply_markup=start_kb)
 
     await callback.answer()

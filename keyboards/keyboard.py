@@ -8,4 +8,6 @@ button_help = KeyboardButton(text=LEXICON['help_button'])
 
 
 # Создаем клавиатуру с кнопками "Сыграем", "Не сейчаc" и "Правила"
-start_kb = ReplyKeyboardMarkup(keyboard=[[button_yes, button_no, button_help]], resize_keyboard=True)
+start_kb = ReplyKeyboardMarkup(keyboard=[[button_yes, button_no, button_help]],
+                               resize_keyboard=True,
+                               one_time_keyboard=True)
