@@ -6,7 +6,6 @@ class Game:
     def __init__(self):
         self.game_field = [[0] * 3 for _ in range(3)]  # игровое поле в виде матрицы с цифрами
         self.queue_flag = 1  # флаг очереди: 1 - ход игрока, 2 - ход компьютера
-        self.is_end = False  # флаг конца игры
         self.human_letter = 1  # фигура игрока (1 - Х)
         self.computer_letter = 2  # фигура компьютера (2 - О)
 
@@ -125,7 +124,8 @@ class Game:
 
         if field_copy:
             field_copy[move[0]][move[1]] = letter
-        self.game_field[move[0]][move[1]] = letter
+        else:
+            self.game_field[move[0]][move[1]] = letter
 
     def is_space_free(self, move: tuple[int, int], field_copy=None) -> bool:
         """
