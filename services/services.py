@@ -4,7 +4,7 @@ game_filed = [[0] * 3 for _ in range(3)]  # игровое поле в виде 
 class Game:
 
     def __init__(self):
-        self.game_field = [[0] * 3 for _ in range(3)]  # игровое поле в виде матрицы с цифрами
+        self.game_field = [[' '] * 3 for _ in range(3)]  # игровое поле в виде матрицы с цифрами
         self.queue_flag = 1  # флаг очереди: 1 - ход игрока, 2 - ход компьютера
         self.human_letter = 1  # фигура игрока (1 - Х)
         self.computer_letter = 2  # фигура компьютера (2 - О)
@@ -63,7 +63,6 @@ class Game:
     def computer_move(self) -> tuple[int, int]:
         """
         Алгоритм просчета хода компьютера
-        :param letter: игрока и компьютера соответственно
         :return: координаты хода компьютера
         """
 
@@ -134,7 +133,12 @@ class Game:
         :param move: кортеж с координатами хода
         :return: свободна клетка с переданными координатами (==0) или нет (==1 или ==2)
         """
-        if field_copy:
-            return field_copy[move[0]][move[1]] == 0
 
-        return self.game_field[move[0]][move[1]] == 0
+        if field_copy:
+            return field_copy[move[0]][move[1]] == ' '
+
+        return self.game_field[move[0]][move[1]] == ' '
+
+    def reload_field(self):
+        """сброс состояния игрового поля"""
+        self.game_field = [[' '] * 3 for _ in range(3)]

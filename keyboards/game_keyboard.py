@@ -8,7 +8,6 @@ def create_game_keyboard(game_field: list[[list[int]]]) -> InlineKeyboardMarkup:
     :param game_field: список игрового поля
     :return: InlineKeyboardMarkup
     """
-
     # Создаем объект клавиатуры
     kb_builder = InlineKeyboardBuilder()
 
@@ -18,7 +17,15 @@ def create_game_keyboard(game_field: list[[list[int]]]) -> InlineKeyboardMarkup:
     # наполняем клавиатуру кнопками в соответствии с переданной матрицей
     for i in range(3):
         for j in range(3):
-            buttons.append((InlineKeyboardButton(text=str(game_field[i][j]),
+
+            if game_field[i][j] == 1:
+                letter = 'X'
+            elif game_field[i][j] == 2:
+                letter = 'O'
+            else:
+                letter = game_field[i][j]
+
+            buttons.append((InlineKeyboardButton(text=letter,
                                                  callback_data=f'{i},{j}')))
 
     # Распаковываем список с кнопками в билдер методом row c параметром width
